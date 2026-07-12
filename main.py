@@ -12,9 +12,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 import pygame
 from src.settings import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, FPS, GAME_TITLE, 
+    SCREEN_WIDTH, SCREEN_HEIGHT, FPS, GAME_TITLE, TILE_SIZE,
     Colors, DEBUG, SHOW_FPS, validate_config
 )
+from src.core.map import Map
 
 class Game:
     """Classe principal do jogo"""
@@ -38,6 +39,10 @@ class Game:
         
         # Fonte para debug
         self.font = pygame.font.Font(None, 24)
+
+        # Inicializar mapa
+        self.current_map = Map("World 1", SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, TILE_SIZE)
+        self.camera_offset = [0, 0] # Offset da câmera para rolagem
         
         print(f"✓ {GAME_TITLE} inicializado com sucesso!")
         print(f"  Resolução: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
@@ -55,12 +60,27 @@ class Game:
     
     def update(self, dt):
         """Atualiza lógica do jogo"""
-        pass
+        # Atualizar lógica do mapa
+        # self.current_map.update(dt) # Se o mapa tiver lógica de atualização
+
+        # Exemplo de movimento da câmera (para demonstração)
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            self.camera_offset[0] -= 5
+        if keys[pygame.K_RIGHT]:
+            self.camera_offset[0] += 5
+        if keys[pygame.K_UP]:
+            self.camera_offset[1] -= 5
+        if keys[pygame.K_DOWN]:
+            self.camera_offset[1] += 5
     
     def render(self):
         """Renderiza o jogo"""
         # Limpar tela
-        self.screen.fill(Colors.BLACK.value)
+        self.screen.fill(Colors.DARK_GRAY.value)
+
+        # Renderizar mapa
+        self.current_map.render(self.screen, self.camera_offset)
         
         # Renderizar título
         title_text = self.font.render(f"🐉 {GAME_TITLE}", True, Colors.WHITE.value)
@@ -81,8 +101,9 @@ class Game:
         instructions = [
             "Estrutura base do projeto criada com sucesso!",
             "",
-            "Próximo passo: Implementar Player System",
+            "Classes base (Entity, Item, Map) definidas e integradas.",
             "",
+            "Use as setas para mover a câmera.",
             "Pressione ESC para sair"
         ]
         

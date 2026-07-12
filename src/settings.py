@@ -93,6 +93,11 @@ LEVEL_UP_XP_BASE = 100  # XP necessário para level 1
 LEVEL_UP_XP_MULTIPLIER = 1.1  # Cada level requer 10% mais XP
 
 # ============================================
+# CONFIGURAÇÕES DE MAPA
+# ============================================
+TILE_SIZE = 32
+
+# ============================================
 # CONFIGURAÇÕES DE LOOT
 # ============================================
 class ItemRarity(Enum):
