@@ -16,6 +16,7 @@ from src.settings import (
     Colors, DEBUG, SHOW_FPS, validate_config
 )
 from src.core.map import Map
+from src.player.player import Player
 
 class Game:
     """Classe principal do jogo"""
@@ -42,6 +43,10 @@ class Game:
 
         # Inicializar mapa
         self.current_map = Map("World 1", SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, TILE_SIZE)
+        
+        # Inicializar Player no centro do mapa
+        self.player = Player((SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2), self)
+        
         self.camera_offset = [0, 0] # Offset da câmera para rolagem
         
         print(f"✓ {GAME_TITLE} inicializado com sucesso!")
@@ -60,19 +65,16 @@ class Game:
     
     def update(self, dt):
         """Atualiza lógica do jogo"""
-        # Atualizar lógica do mapa
-        # self.current_map.update(dt) # Se o mapa tiver lógica de atualização
+        # Atualizar Player
+        self.player.update(dt, self.current_map)
 
-        # Exemplo de movimento da câmera (para demonstração)
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            self.camera_offset[0] -= 5
-        if keys[pygame.K_RIGHT]:
-            self.camera_offset[0] += 5
-        if keys[pygame.K_UP]:
-            self.camera_offset[1] -= 5
-        if keys[pygame.K_DOWN]:
-            self.camera_offset[1] += 5
+        # Atualizar Câmera para seguir o Player
+        self.camera_offset[0] = self.player.rect.centerx - SCREEN_WIDTH // 2
+        self.camera_offset[1] = self.player.rect.centery - SCREEN_HEIGHT // 2
+        
+        # Limitar câmera aos limites do mapa
+        self.camera_offset[0] = max(0, min(self.camera_offset[0], self.current_map.width - SCREEN_WIDTH))
+        self.camera_offset[1] = max(0, min(self.camera_offset[1], self.current_map.height - SCREEN_HEIGHT))
     
     def render(self):
         """Renderiza o jogo"""
@@ -81,6 +83,9 @@ class Game:
 
         # Renderizar mapa
         self.current_map.render(self.screen, self.camera_offset)
+        
+        # Renderizar Player
+        self.player.render(self.screen, self.camera_offset)
         
         # Renderizar título
         title_text = self.font.render(f"🐉 {GAME_TITLE}", True, Colors.WHITE.value)
@@ -101,9 +106,10 @@ class Game:
         instructions = [
             "Estrutura base do projeto criada com sucesso!",
             "",
-            "Classes base (Entity, Item, Map) definidas e integradas.",
+            "Player System implementado com sucesso!",
             "",
-            "Use as setas para mover a câmera.",
+            "Use WASD ou SETAS para mover o jogador.",
+            "Pressione ESPAÇO para dar um DASH.",
             "Pressione ESC para sair"
         ]
         
