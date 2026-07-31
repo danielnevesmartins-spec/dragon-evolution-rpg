@@ -25,3 +25,24 @@ class Item:
         if self.stackable:
             info += "  Empilhável\n"
         return info
+
+from src.core.entity import Entity
+
+class CollectibleItem(Entity):
+    """Representa um item físico no mapa que pode ser coletado."""
+
+    def __init__(self, item: Item, position: tuple[int, int]):
+        self.item = item
+        # Usar o ícone do item como sprite da entidade no mapa
+        super().__init__(
+            id=item.id,
+            name=item.name,
+            position=position,
+            health=1,
+            speed=0,
+            sprite=item.icon
+        )
+
+    def collect(self, inventory) -> bool:
+        """Tenta adicionar o item ao inventário fornecido."""
+        return inventory.add_item(self.item)

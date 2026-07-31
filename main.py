@@ -15,7 +15,9 @@ from src.settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, FPS, GAME_TITLE, TILE_SIZE,
     Colors, DEBUG, SHOW_FPS, validate_config
 )
+import uuid
 from src.core.map import Map
+from src.core.item import Item, CollectibleItem
 from src.player.player import Player
 
 class Game:
@@ -47,7 +49,30 @@ class Game:
         # Inicializar Player no centro do mapa
         self.player = Player((SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2), self)
         
+        # Lista de itens no mundo
+        self.world_items = []
+        self._spawn_test_items()
+        
         self.camera_offset = [0, 0] # Offset da câmera para rolagem
+
+    def _spawn_test_items(self):
+        """Cria alguns itens de teste no mapa."""
+        # Criar uma poção de teste
+        potion_icon = pygame.Surface((16, 16))
+        potion_icon.fill(Colors.RED.value)
+        
+        test_potion = Item(
+            id=uuid.uuid4(),
+            name="Poção de Vida",
+            description="Recupera 20 HP",
+            icon=potion_icon,
+            stackable=True,
+            value=50
+        )
+        
+        # Adicionar ao mundo em posições variadas
+        self.world_items.append(CollectibleItem(test_potion, (SCREEN_WIDTH // 2 + 100, SCREEN_HEIGHT // 2)))
+        self.world_items.append(CollectibleItem(test_potion, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 50)))
         
         print(f"✓ {GAME_TITLE} inicializado com sucesso!")
         print(f"  Resolução: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
@@ -68,6 +93,13 @@ class Game:
         # Atualizar Player
         self.player.update(dt, self.current_map)
 
+        # Verificar coleta de itens
+        for item in self.world_items[:]:
+            if self.player.rect.colliderect(item.rect):
+                if item.collect(self.player.inventory):
+                    self.world_items.remove(item)
+                    print(f"Coletado: {item.name}")
+
         # Atualizar Câmera para seguir o Player
         self.camera_offset[0] = self.player.rect.centerx - SCREEN_WIDTH // 2
         self.camera_offset[1] = self.player.rect.centery - SCREEN_HEIGHT // 2
@@ -86,6 +118,14 @@ class Game:
         
         # Renderizar Player
         self.player.render(self.screen, self.camera_offset)
+        
+        # Renderizar Itens no Mundo
+        for item in self.world_items:
+            item.render(self.screen, self.camera_offset)
+            
+        # Renderizar UI de Inventário (Simples)
+        inv_text = self.font.render(f"Inventário: {len(self.player.inventory.items)}/{self.player.inventory.capacity}", True, Colors.WHITE.value)
+        self.screen.blit(inv_text, (20, 20))
         
         # Renderizar título
         title_text = self.font.render(f"🐉 {GAME_TITLE}", True, Colors.WHITE.value)

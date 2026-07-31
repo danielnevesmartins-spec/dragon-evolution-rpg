@@ -3,6 +3,7 @@ import uuid
 import math
 from enum import Enum
 from src.core.entity import Entity
+from src.core.inventory import Inventory
 from src.settings import PLAYER_SPEED, PLAYER_INITIAL_HP, PLAYER_DASH_SPEED, PLAYER_DASH_DURATION, PLAYER_DASH_COOLDOWN
 
 class PlayerState(Enum):
@@ -56,6 +57,9 @@ class Player(Entity):
         self.invulnerable = False
         self.invulnerable_timer = 0
         self.invulnerable_duration = 0.5
+        
+        # Inventário
+        self.inventory = Inventory(capacity=24)
 
     def handle_input(self):
         """Captura os inputs do teclado para movimentação e ações."""
