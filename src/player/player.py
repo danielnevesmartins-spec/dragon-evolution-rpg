@@ -45,12 +45,24 @@ class Player(Entity):
         self.dash_cooldown_timer = 0
         self.is_dashing = False
         
-        # Stats
-        self.stamina = 100
-        self.max_stamina = 100
-        self.stamina_regen = 30
+        # Atributos Primários
+        self.strength = 10      # Dano Físico
+        self.agility = 10       # Velocidade / Stamina
+        self.intelligence = 10  # Dano Mágico / MP
+        
+        # Stats Derivados
+        self.max_hp = PLAYER_INITIAL_HP + (self.strength * 5)
+        self.health = self.max_hp
+        self.max_mp = 50 + (self.intelligence * 5)
+        self.mp = self.max_mp
+        self.max_stamina = 100 + (self.agility * 2)
+        self.stamina = self.max_stamina
+        self.stamina_regen = 20 + (self.agility * 0.5)
+        
+        # Progressão
         self.level = 1
         self.xp = 0
+        self.xp_to_next_level = 100
         
         # Estado
         self.state = PlayerState.IDLE
@@ -120,8 +132,10 @@ class Player(Entity):
         # Input
         self.handle_input()
 
-        # Movimentação
-        current_speed = self.dash_speed if self.is_dashing else self.speed
+        # Movimentação (Agilidade influencia a velocidade base levemente)
+        bonus_speed = (self.agility - 10) * 2
+        current_speed = (self.dash_speed if self.is_dashing else self.speed) + bonus_speed
+        
         move_x = self.direction.x * current_speed * dt
         move_y = self.direction.y * current_speed * dt
 
@@ -134,6 +148,36 @@ class Player(Entity):
         # Stamina
         if not self.is_dashing:
             self.stamina = min(self.max_stamina, self.stamina + self.stamina_regen * dt)
+            
+    def gain_xp(self, amount: int):
+        """Adiciona XP e verifica Level Up."""
+        self.xp += amount
+        while self.xp >= self.xp_to_next_level:
+            self.level_up()
+
+    def level_up(self):
+        """Aumenta o nível e melhora atributos."""
+        self.xp -= self.xp_to_next_level
+        self.level += 1
+        self.xp_to_next_level = int(self.xp_to_next_level * 1.1)
+        
+        # Aumento de atributos (Exemplo simples)
+        self.strength += 2
+        self.agility += 2
+        self.intelligence += 2
+        
+        # Recalcular status derivados
+        self.max_hp = PLAYER_INITIAL_HP + (self.strength * 5)
+        self.max_mp = 50 + (self.intelligence * 5)
+        self.max_stamina = 100 + (self.agility * 2)
+        self.stamina_regen = 20 + (self.agility * 0.5)
+        
+        # Curar ao subir de nível
+        self.health = self.max_hp
+        self.mp = self.max_mp
+        self.stamina = self.max_stamina
+        
+        print(f"🎉 LEVEL UP! Agora você é nível {self.level}!")
 
     def apply_collision(self, dx: float, dy: float, game_map):
         """Aplica colisão nos eixos X e Y separadamente."""

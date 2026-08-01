@@ -98,7 +98,8 @@ class Game:
             if self.player.rect.colliderect(item.rect):
                 if item.collect(self.player.inventory):
                     self.world_items.remove(item)
-                    print(f"Coletado: {item.name}")
+                    self.player.gain_xp(50) # Ganhar 50 XP por item coletado
+                    print(f"Coletado: {item.name} (+50 XP)")
 
         # Atualizar Câmera para seguir o Player
         self.camera_offset[0] = self.player.rect.centerx - SCREEN_WIDTH // 2
@@ -123,9 +124,20 @@ class Game:
         for item in self.world_items:
             item.render(self.screen, self.camera_offset)
             
-        # Renderizar UI de Inventário (Simples)
-        inv_text = self.font.render(f"Inventário: {len(self.player.inventory.items)}/{self.player.inventory.capacity}", True, Colors.WHITE.value)
-        self.screen.blit(inv_text, (20, 20))
+        # Renderizar UI de Status (Simples)
+        ui_y = 20
+        status_lines = [
+            f"Nível: {self.player.level} (XP: {self.player.xp}/{self.player.xp_to_next_level})",
+            f"HP: {int(self.player.health)}/{self.player.max_hp}",
+            f"MP: {int(self.player.mp)}/{self.player.max_mp}",
+            f"Stamina: {int(self.player.stamina)}/{int(self.player.max_stamina)}",
+            f"Inventário: {len(self.player.inventory.items)}/{self.player.inventory.capacity}"
+        ]
+        
+        for line in status_lines:
+            text_surf = self.font.render(line, True, Colors.WHITE.value)
+            self.screen.blit(text_surf, (20, ui_y))
+            ui_y += 25
         
         # Renderizar título
         title_text = self.font.render(f"🐉 {GAME_TITLE}", True, Colors.WHITE.value)
