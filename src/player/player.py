@@ -45,6 +45,13 @@ class Player(Entity):
         self.dash_cooldown_timer = 0
         self.is_dashing = False
         
+        # Combate
+        self.attack_cooldown = 0.5
+        self.attack_timer = 0
+        self.is_attacking = False
+        self.attack_duration = 0.2
+        self.attack_rect = pygame.Rect(0, 0, 40, 40)
+        
         # Atributos Primários
         self.strength = 10      # Dano Físico
         self.agility = 10       # Velocidade / Stamina
@@ -76,6 +83,7 @@ class Player(Entity):
     def handle_input(self):
         """Captura os inputs do teclado para movimentação e ações."""
         keys = pygame.key.get_pressed()
+        mouse_buttons = pygame.mouse.get_pressed()
         
         # Resetar direção
         self.direction.x = 0
@@ -95,15 +103,19 @@ class Player(Entity):
         if self.direction.magnitude() > 0:
             self.direction = self.direction.normalize()
             self.facing_direction = self.direction.copy()
-            if not self.is_dashing:
+            if not self.is_dashing and not self.is_attacking:
                 self.state = PlayerState.WALKING
         else:
-            if not self.is_dashing:
+            if not self.is_dashing and not self.is_attacking:
                 self.state = PlayerState.IDLE
 
         # Dash
         if keys[pygame.K_SPACE] and self.dash_cooldown_timer <= 0 and self.stamina >= 20:
             self.start_dash()
+            
+        # Ataque
+        if (mouse_buttons[0] or keys[pygame.K_j]) and self.attack_timer <= 0:
+            self.attack()
 
     def start_dash(self):
         """Inicia um dash."""
@@ -113,7 +125,29 @@ class Player(Entity):
         self.stamina -= 20
         self.state = PlayerState.DASHING
 
-    def update(self, dt: float, game_map=None):
+    def attack(self):
+        """Inicia um ataque."""
+        self.is_attacking = True
+        self.attack_timer = self.attack_cooldown
+        self.state = PlayerState.ATTACKING
+        
+        # Posicionar hitbox de ataque à frente do jogador
+        self.attack_rect.center = (
+            self.rect.centerx + self.facing_direction.x * 30,
+            self.rect.centery + self.facing_direction.y * 30
+        )
+
+    def check_attack_collision(self, enemies):
+        """Verifica se o ataque atingiu algum inimigo."""
+        damage = 10 + (self.strength // 2)
+        for enemy in enemies:
+            if self.attack_rect.colliderect(enemy.rect) and enemy.health > 0:
+                enemy.take_damage(damage)
+                if enemy.health <= 0:
+                    self.gain_xp(enemy.xp_reward)
+                print(f"⚔️ Você atingiu {enemy.name}! Dano: {damage}")
+
+    def update(self, dt: float, game_map=None, enemies=None):
         """Atualiza a lógica do jogador."""
         # Timers
         if self.dash_timer > 0:
@@ -124,6 +158,11 @@ class Player(Entity):
         if self.dash_cooldown_timer > 0:
             self.dash_cooldown_timer -= dt
             
+        if self.attack_timer > 0:
+            self.attack_timer -= dt
+            if self.attack_timer <= (self.attack_cooldown - self.attack_duration):
+                self.is_attacking = False
+            
         if self.invulnerable:
             self.invulnerable_timer -= dt
             if self.invulnerable_timer <= 0:
@@ -131,8 +170,12 @@ class Player(Entity):
 
         # Input
         self.handle_input()
+        
+        # Lógica de Ataque
+        if self.is_attacking and enemies:
+            self.check_attack_collision(enemies)
 
-        # Movimentação (Agilidade influencia a velocidade base levemente)
+        # Movimentação
         bonus_speed = (self.agility - 10) * 2
         current_speed = (self.dash_speed if self.is_dashing else self.speed) + bonus_speed
         
@@ -161,18 +204,15 @@ class Player(Entity):
         self.level += 1
         self.xp_to_next_level = int(self.xp_to_next_level * 1.1)
         
-        # Aumento de atributos (Exemplo simples)
         self.strength += 2
         self.agility += 2
         self.intelligence += 2
         
-        # Recalcular status derivados
         self.max_hp = PLAYER_INITIAL_HP + (self.strength * 5)
         self.max_mp = 50 + (self.intelligence * 5)
         self.max_stamina = 100 + (self.agility * 2)
         self.stamina_regen = 20 + (self.agility * 0.5)
         
-        # Curar ao subir de nível
         self.health = self.max_hp
         self.mp = self.max_mp
         self.stamina = self.max_stamina
@@ -181,7 +221,6 @@ class Player(Entity):
 
     def apply_collision(self, dx: float, dy: float, game_map):
         """Aplica colisão nos eixos X e Y separadamente."""
-        # Eixo X
         old_x = self.position[0]
         self.position[0] += dx
         self.rect.x = int(self.position[0])
@@ -189,7 +228,6 @@ class Player(Entity):
             self.position[0] = old_x
             self.rect.x = int(self.position[0])
 
-        # Eixo Y
         old_y = self.position[1]
         self.position[1] += dy
         self.rect.y = int(self.position[1])
@@ -199,28 +237,27 @@ class Player(Entity):
 
     def render(self, screen: pygame.Surface, camera_offset: tuple[int, int]):
         """Desenha o jogador na tela com efeitos visuais."""
-        # Cor base
         color = (100, 200, 255)
-        
-        # Efeito de dano (piscar vermelho)
         if self.invulnerable and int(self.invulnerable_timer * 10) % 2 == 0:
             color = (255, 100, 100)
-        
-        # Efeito de dash (amarelo)
         if self.is_dashing:
             color = (255, 200, 0)
 
-        # Desenhar o corpo do player
         draw_pos = (self.rect.x - camera_offset[0], self.rect.y - camera_offset[1])
         pygame.draw.rect(screen, color, (*draw_pos, self.rect.width, self.rect.height))
         
-        # Desenhar linha de direção
         center_x = draw_pos[0] + self.rect.width // 2
         center_y = draw_pos[1] + self.rect.height // 2
         end_x = center_x + self.facing_direction.x * 20
         end_y = center_y + self.facing_direction.y * 20
         pygame.draw.line(screen, (255, 255, 255), (center_x, center_y), (end_x, end_y), 2)
 
-        # Debug: Hitbox
+        if self.is_attacking:
+            attack_draw_pos = (self.attack_rect.x - camera_offset[0], self.attack_rect.y - camera_offset[1])
+            pygame.draw.rect(screen, (255, 255, 255), (*attack_draw_pos, self.attack_rect.width, self.attack_rect.height), 2)
+
         if self.settings.DEBUG:
             pygame.draw.rect(screen, (0, 255, 0), (*draw_pos, self.rect.width, self.rect.height), 1)
+            if self.is_attacking:
+                attack_draw_pos = (self.attack_rect.x - camera_offset[0], self.attack_rect.y - camera_offset[1])
+                pygame.draw.rect(screen, (255, 255, 0), (*attack_draw_pos, self.attack_rect.width, self.attack_rect.height), 1)

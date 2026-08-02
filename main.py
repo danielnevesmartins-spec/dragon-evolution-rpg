@@ -18,6 +18,7 @@ from src.settings import (
 import uuid
 from src.core.map import Map
 from src.core.item import Item, CollectibleItem
+from src.core.enemy import Enemy
 from src.player.player import Player
 
 class Game:
@@ -53,7 +54,20 @@ class Game:
         self.world_items = []
         self._spawn_test_items()
         
+        # Lista de inimigos
+        self.enemies = []
+        self._spawn_test_enemies()
+        
         self.camera_offset = [0, 0] # Offset da câmera para rolagem
+
+    def _spawn_test_enemies(self):
+        """Cria alguns inimigos de teste no mapa."""
+        slime_sprite = pygame.Surface((32, 32))
+        slime_sprite.fill(Colors.GREEN.value)
+        
+        # Adicionar alguns Slimes em posições variadas
+        self.enemies.append(Enemy("Slime Verde", (SCREEN_WIDTH // 2 + 200, SCREEN_HEIGHT // 2 + 100), 30, 80, slime_sprite, 25))
+        self.enemies.append(Enemy("Slime Azul", (SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2 - 100), 40, 60, slime_sprite, 35))
 
     def _spawn_test_items(self):
         """Cria alguns itens de teste no mapa."""
@@ -90,8 +104,17 @@ class Game:
     
     def update(self, dt):
         """Atualiza lógica do jogo"""
-        # Atualizar Player
-        self.player.update(dt, self.current_map)
+        # Atualizar Player (Passando a lista de inimigos para detecção de ataque)
+        self.player.update(dt, self.current_map, self.enemies)
+
+        # Atualizar Inimigos
+        for enemy in self.enemies[:]:
+            if enemy.health > 0:
+                enemy.update(dt, self.player, self.current_map)
+            else:
+                # Se o inimigo morreu, remover da lista (ou deixar o corpo)
+                self.enemies.remove(enemy)
+                print(f"💀 {enemy.name} foi derrotado!")
 
         # Verificar coleta de itens
         for item in self.world_items[:]:
@@ -123,6 +146,10 @@ class Game:
         # Renderizar Itens no Mundo
         for item in self.world_items:
             item.render(self.screen, self.camera_offset)
+            
+        # Renderizar Inimigos
+        for enemy in self.enemies:
+            enemy.render(self.screen, self.camera_offset)
             
         # Renderizar UI de Status (Simples)
         ui_y = 20
