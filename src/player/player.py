@@ -79,6 +79,11 @@ class Player(Entity):
         
         # Inventário
         self.inventory = Inventory(capacity=24)
+        
+        # Interação
+        self.wants_to_interact = False
+        self.interaction_cooldown = 0.5
+        self.interaction_timer = 0
 
     def handle_input(self):
         """Captura os inputs do teclado para movimentação e ações."""
@@ -116,6 +121,9 @@ class Player(Entity):
         # Ataque
         if (mouse_buttons[0] or keys[pygame.K_j]) and self.attack_timer <= 0:
             self.attack()
+            
+        # Interação (Tecla E)
+        self.wants_to_interact = keys[pygame.K_e]
 
     def start_dash(self):
         """Inicia um dash."""
@@ -162,6 +170,9 @@ class Player(Entity):
             self.attack_timer -= dt
             if self.attack_timer <= (self.attack_cooldown - self.attack_duration):
                 self.is_attacking = False
+            
+        if self.interaction_timer > 0:
+            self.interaction_timer -= dt
             
         if self.invulnerable:
             self.invulnerable_timer -= dt
