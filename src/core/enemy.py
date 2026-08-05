@@ -60,23 +60,7 @@ class Enemy(Entity):
         player.take_damage(self.damage)
         print(f"💥 {self.name} atacou você! Dano: {self.damage}")
 
-    def apply_collision(self, dx: float, dy: float, game_map):
-        """Aplica colisão simples para o inimigo."""
-        # Eixo X
-        old_x = self.position[0]
-        self.position[0] += dx
-        self.rect.x = int(self.position[0])
-        if game_map.is_collision(self.rect):
-            self.position[0] = old_x
-            self.rect.x = int(self.position[0])
 
-        # Eixo Y
-        old_y = self.position[1]
-        self.position[1] += dy
-        self.rect.y = int(self.position[1])
-        if game_map.is_collision(self.rect):
-            self.position[1] = old_y
-            self.rect.y = int(self.position[1])
 
     def render(self, screen: pygame.Surface, camera_offset: tuple[int, int]):
         """Renderiza o inimigo e sua barra de vida."""

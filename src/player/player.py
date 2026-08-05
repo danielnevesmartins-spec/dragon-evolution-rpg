@@ -84,6 +84,10 @@ class Player(Entity):
         self.wants_to_interact = False
         self.interaction_cooldown = 0.5
         self.interaction_timer = 0
+        
+        # Feedback Visual
+        self.level_up_timer = 0
+        self.damage_flash_timer = 0
 
     def handle_input(self):
         """Captura os inputs do teclado para movimentação e ações."""
@@ -178,6 +182,12 @@ class Player(Entity):
             self.invulnerable_timer -= dt
             if self.invulnerable_timer <= 0:
                 self.invulnerable = False
+                
+        if self.level_up_timer > 0:
+            self.level_up_timer -= dt
+            
+        if self.damage_flash_timer > 0:
+            self.damage_flash_timer -= dt
 
         # Input
         self.handle_input()
@@ -227,30 +237,35 @@ class Player(Entity):
         self.health = self.max_hp
         self.mp = self.max_mp
         self.stamina = self.max_stamina
+        self.level_up_timer = 2.0 # Exibir mensagem de Level Up por 2 segundos
         
         print(f"🎉 LEVEL UP! Agora você é nível {self.level}!")
 
-    def apply_collision(self, dx: float, dy: float, game_map):
-        """Aplica colisão nos eixos X e Y separadamente."""
-        old_x = self.position[0]
-        self.position[0] += dx
-        self.rect.x = int(self.position[0])
-        if game_map.is_collision(self.rect):
-            self.position[0] = old_x
-            self.rect.x = int(self.position[0])
-
-        old_y = self.position[1]
-        self.position[1] += dy
-        self.rect.y = int(self.position[1])
-        if game_map.is_collision(self.rect):
-            self.position[1] = old_y
-            self.rect.y = int(self.position[1])
+    def take_damage(self, amount: int):
+        """Reduz a saúde do jogador com frames de invulnerabilidade."""
+        if self.invulnerable or self.health <= 0:
+            return
+            
+        super().take_damage(amount)
+        self.invulnerable = True
+        self.invulnerable_timer = self.invulnerable_duration
+        self.damage_flash_timer = 0.2 # Piscar vermelho ao receber dano
+        self.state = PlayerState.HURT
+        
+        if self.health <= 0:
+            self.state = PlayerState.DEAD
+            print("💀 GAME OVER! Você foi derrotado.")
 
     def render(self, screen: pygame.Surface, camera_offset: tuple[int, int]):
         """Desenha o jogador na tela com efeitos visuais."""
         color = (100, 200, 255)
-        if self.invulnerable and int(self.invulnerable_timer * 10) % 2 == 0:
+        
+        # Feedback de Dano (Flash Vermelho)
+        if self.damage_flash_timer > 0:
+            color = (255, 0, 0)
+        elif self.invulnerable and int(self.invulnerable_timer * 10) % 2 == 0:
             color = (255, 100, 100)
+            
         if self.is_dashing:
             color = (255, 200, 0)
 
@@ -272,3 +287,10 @@ class Player(Entity):
             if self.is_attacking:
                 attack_draw_pos = (self.attack_rect.x - camera_offset[0], self.attack_rect.y - camera_offset[1])
                 pygame.draw.rect(screen, (255, 255, 0), (*attack_draw_pos, self.attack_rect.width, self.attack_rect.height), 1)
+
+        # Feedback de Level Up
+        if self.level_up_timer > 0:
+            font = pygame.font.SysFont(None, 36, bold=True)
+            lvl_text = font.render(f"LEVEL UP! ({self.level})", True, (255, 255, 0))
+            text_rect = lvl_text.get_rect(center=(draw_pos[0] + self.rect.width // 2, draw_pos[1] - 40))
+            screen.blit(lvl_text, text_rect)
