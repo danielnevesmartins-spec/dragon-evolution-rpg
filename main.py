@@ -20,6 +20,8 @@ from src.core.tiled_map import TiledMap
 from src.core.item import Item, CollectibleItem
 from src.core.enemy import Enemy
 from src.core.npc import NPC
+from src.core.quest.quest import Quest
+from src.core.quest.quest_objective import KillObjective, CollectObjective, TalkObjective
 from src.player.player import Player
 
 class Game:
@@ -51,6 +53,7 @@ class Game:
         self.npcs = []
         
         self._spawn_entities()
+        self._init_quests()
         
         # Sistema de Diálogo
         self.active_dialogue = None
@@ -61,8 +64,8 @@ class Game:
         # Itens
         potion_icon = pygame.Surface((16, 16))
         potion_icon.fill(Colors.RED.value)
-        test_potion = Item(uuid.uuid4(), "Poção de Vida", "Recupera 20 HP", potion_icon, True, 50)
-        self.world_items.append(CollectibleItem(test_potion, (400, 400)))
+        self.test_potion = Item(uuid.uuid4(), "Poção de Vida", "Recupera 20 HP", potion_icon, True, 50)
+        self.world_items.append(CollectibleItem(self.test_potion, (400, 400)))
         
         # Inimigos
         slime_sprite = pygame.Surface((32, 32))
@@ -78,6 +81,20 @@ class Game:
             npc_sprite, 
             ["Bem-vindo, jovem dragão!", "O mundo está em perigo.", "Encontre as esferas mágicas!"]
         ))
+
+    def _init_quests(self):
+        """Inicializa as missões do jogo."""
+        # Quest de Teste 1: Caçador de Slimes
+        q1_objectives = [KillObjective("Slime Verde", 1)]
+        q1 = Quest("q1", "Caçador de Slimes", "Derrote o Slime Verde que aterroriza a vila.", q1_objectives, {"xp": 100})
+        self.player.quest_manager.add_quest(q1)
+        self.player.quest_manager.accept_quest("q1")
+
+        # Quest de Teste 2: Coletor de Poções
+        q2_objectives = [CollectObjective("Poção de Vida", 1)]
+        q2 = Quest("q2", "Provisões de Emergência", "Colete uma poção para o Ancião.", q2_objectives, {"xp": 50})
+        self.player.quest_manager.add_quest(q2)
+        self.player.quest_manager.accept_quest("q2")
 
     def handle_events(self):
         """Processa eventos do jogo"""
@@ -105,7 +122,10 @@ class Game:
             if enemy.health > 0:
                 enemy.update(dt, self.player, self.current_map)
             else:
+                enemy_name = enemy.name
                 self.enemies.remove(enemy)
+                self.player.quest_manager.notify_kill(enemy_name)
+                print(f"💀 {enemy_name} foi derrotado!")
 
         # Atualizar NPCs e Interação
         for npc in self.npcs:
@@ -116,15 +136,19 @@ class Game:
                 dx = self.player.position[0] - npc.position[0]
                 dy = self.player.position[1] - npc.position[1]
                 if (dx**2 + dy**2)**0.5 < npc.interaction_range:
+                    npc_name = npc.name
                     self.active_dialogue = f"{npc.name}: {npc.interact()}"
                     self.player.interaction_timer = self.player.interaction_cooldown
+                    self.player.quest_manager.notify_talk(npc_name)
 
         # Coleta de Itens
         for item in self.world_items[:]:
             if self.player.rect.colliderect(item.rect):
+                item_name = item.name
                 if item.collect(self.player.inventory):
                     self.world_items.remove(item)
                     self.player.gain_xp(50)
+                    self.player.quest_manager.notify_collect(item_name)
 
         # Atualizar Câmera (Pyscroll)
         self.current_map.update(self.player.rect)
@@ -186,11 +210,27 @@ class Game:
         
         for line in status_lines:
             text_surf = self.font.render(line, True, Colors.WHITE.value)
-            # Fundo preto para legibilidade
             bg_rect = text_surf.get_rect(topleft=(20, ui_y))
             pygame.draw.rect(self.screen, (0, 0, 0, 128), bg_rect.inflate(10, 5))
             self.screen.blit(text_surf, (20, ui_y))
             ui_y += 25
+
+        # Renderizar Quest Log (Canto superior direito)
+        quest_y = 20
+        quest_title = self.font.render("MISSÕES ATIVAS:", True, Colors.YELLOW.value)
+        self.screen.blit(quest_title, (SCREEN_WIDTH - 250, quest_y))
+        quest_y += 30
+
+        for quest in self.player.quest_manager.active_quests:
+            color = Colors.GREEN.value if quest.status.value == "completed" else Colors.WHITE.value
+            q_text = self.font.render(f"- {quest.name}", True, color)
+            self.screen.blit(q_text, (SCREEN_WIDTH - 240, quest_y))
+            quest_y += 20
+            for obj in quest.objectives:
+                obj_text = self.font.render(f"  {obj.get_progress_text()}", True, Colors.GRAY.value)
+                self.screen.blit(obj_text, (SCREEN_WIDTH - 230, quest_y))
+                quest_y += 20
+            quest_y += 10
 
         if SHOW_FPS:
             fps_text = self.font.render(f"FPS: {int(self.clock.get_fps())}", True, Colors.GREEN.value)
