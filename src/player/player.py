@@ -155,13 +155,24 @@ class Player(Entity):
 
     def check_attack_collision(self, enemies):
         """Verifica se o ataque atingiu algum inimigo."""
-        damage = 10 + (self.strength // 2)
+        import random
+        from src.settings import CRIT_CHANCE, CRIT_MULTIPLIER, ATTACK_DAMAGE_BASE
+        
+        damage = ATTACK_DAMAGE_BASE + (self.strength // 2)
+        is_crit = random.random() < CRIT_CHANCE
+        if is_crit:
+            damage = int(damage * CRIT_MULTIPLIER)
+            
         for enemy in enemies:
             if self.attack_rect.colliderect(enemy.rect) and enemy.health > 0:
-                enemy.take_damage(damage)
+                # Passar posição do player para knockback no inimigo
+                enemy.take_damage(damage, self.position)
                 if enemy.health <= 0:
                     self.gain_xp(enemy.xp_reward)
-                print(f"⚔️ Você atingiu {enemy.name}! Dano: {damage}")
+                
+                msg = f"⚔️ Você atingiu {enemy.name}! Dano: {damage}"
+                if is_crit: msg = "🔥 CRÍTICO! " + msg
+                print(msg)
 
     def update(self, dt: float, game_map=None, enemies=None):
         """Atualiza a lógica do jogador."""
@@ -245,16 +256,26 @@ class Player(Entity):
         
         print(f"🎉 LEVEL UP! Agora você é nível {self.level}!")
 
-    def take_damage(self, amount: int):
-        """Reduz a saúde do jogador com frames de invulnerabilidade."""
+    def take_damage(self, amount: int, source_pos: tuple[int, int] = None):
+        """Reduz a saúde do jogador com frames de invulnerabilidade e knockback."""
         if self.invulnerable or self.health <= 0:
             return
             
         super().take_damage(amount)
         self.invulnerable = True
         self.invulnerable_timer = self.invulnerable_duration
-        self.damage_flash_timer = 0.2 # Piscar vermelho ao receber dano
+        self.damage_flash_timer = 0.2
         self.state = PlayerState.HURT
+        
+        # Aplicar Knockback
+        if source_pos:
+            dx = self.position[0] - source_pos[0]
+            dy = self.position[1] - source_pos[1]
+            dist = (dx**2 + dy**2)**0.5
+            if dist > 0:
+                # Empurrar jogador por 20 pixels instantaneamente (simples)
+                self.position[0] += (dx / dist) * 20
+                self.position[1] += (dy / dist) * 20
         
         if self.health <= 0:
             self.state = PlayerState.DEAD

@@ -55,9 +55,23 @@ class Enemy(Entity):
             self.attack(player)
             self.attack_timer = self.attack_cooldown
 
+    def take_damage(self, amount: int, source_pos: tuple[int, int] = None):
+        """Reduz a saúde da entidade com knockback opcional."""
+        super().take_damage(amount)
+            
+        # Aplicar Knockback simples
+        if source_pos and self.health > 0:
+            dx = self.position[0] - source_pos[0]
+            dy = self.position[1] - source_pos[1]
+            dist = (dx**2 + dy**2)**0.5
+            if dist > 0:
+                self.position[0] += (dx / dist) * 15
+                self.position[1] += (dy / dist) * 15
+                self.rect.topleft = (int(self.position[0]), int(self.position[1]))
+
     def attack(self, player):
-        """Causa dano ao jogador."""
-        player.take_damage(self.damage)
+        """Causa dano ao jogador com knockback."""
+        player.take_damage(self.damage, self.position)
         print(f"💥 {self.name} atacou você! Dano: {self.damage}")
 
 

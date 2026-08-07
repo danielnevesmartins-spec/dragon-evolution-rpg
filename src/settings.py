@@ -71,9 +71,9 @@ PLAYER_INITIAL_STAMINA = 100
 # ============================================
 ATTACK_COOLDOWN = 0.5  # segundos
 ATTACK_RANGE = 50  # pixels
-ATTACK_DAMAGE_BASE = 10
-CRIT_CHANCE = 0.15  # 15%
-CRIT_MULTIPLIER = 1.5
+ATTACK_DAMAGE_BASE = 12 # Aumentado levemente para compensar o HP dos inimigos
+CRIT_CHANCE = 0.10  # Reduzido para tornar o crítico mais especial
+CRIT_MULTIPLIER = 2.0 # Aumentado para recompensar mais o crítico
 
 # ============================================
 # CONFIGURAÇÕES DE INIMIGOS
@@ -90,7 +90,7 @@ ENEMY_ATTACK_RANGE = 40  # pixels
 # ============================================
 XP_PER_KILL_BASE = 50
 LEVEL_UP_XP_BASE = 100  # XP necessário para level 1
-LEVEL_UP_XP_MULTIPLIER = 1.1  # Cada level requer 10% mais XP
+LEVEL_UP_XP_MULTIPLIER = 1.25  # Aumentado para evitar level up muito rápido nos níveis iniciais
 
 # ============================================
 # CONFIGURAÇÕES DE MAPA

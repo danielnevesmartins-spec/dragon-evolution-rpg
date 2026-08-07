@@ -222,13 +222,24 @@ class Game:
         quest_y += 30
 
         for quest in self.player.quest_manager.active_quests:
-            color = Colors.GREEN.value if quest.status.value == "completed" else Colors.WHITE.value
-            q_text = self.font.render(f"- {quest.name}", True, color)
+            # Destaque visual para quests concluídas
+            is_done = quest.status.value == "completed"
+            color = Colors.GREEN.value if is_done else Colors.WHITE.value
+            
+            # Título da Quest com sombra
+            q_text = self.font.render(f"▶ {quest.name}", True, color)
             self.screen.blit(q_text, (SCREEN_WIDTH - 240, quest_y))
             quest_y += 20
+            
             for obj in quest.objectives:
-                obj_text = self.font.render(f"  {obj.get_progress_text()}", True, Colors.GRAY.value)
+                obj_color = Colors.LIGHT_GRAY.value if not obj.is_completed else Colors.GREEN.value
+                obj_text = self.font.render(f"  • {obj.get_progress_text()}", True, obj_color)
                 self.screen.blit(obj_text, (SCREEN_WIDTH - 230, quest_y))
+                quest_y += 20
+            
+            if is_done:
+                done_text = self.font.render("  (PRONTA PARA ENTREGAR)", True, Colors.YELLOW.value)
+                self.screen.blit(done_text, (SCREEN_WIDTH - 230, quest_y))
                 quest_y += 20
             quest_y += 10
 

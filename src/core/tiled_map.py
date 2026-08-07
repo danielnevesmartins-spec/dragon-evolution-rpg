@@ -52,10 +52,14 @@ class TiledMap:
         if rect.left < 0 or rect.right > self.width or rect.top < 0 or rect.bottom > self.height:
             return True
             
+        # Otimização: Filtrar apenas retângulos próximos ao alvo (buffer de 64 pixels)
+        search_area = rect.inflate(64, 64)
+        
         # Obstáculos internos
         for collision_rect in self.collision_rects:
-            if rect.colliderect(collision_rect):
-                return True
+            if search_area.colliderect(collision_rect):
+                if rect.colliderect(collision_rect):
+                    return True
         return False
 
     def update(self, target_rect: pygame.Rect):
